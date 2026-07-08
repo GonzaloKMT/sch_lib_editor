@@ -565,6 +565,72 @@ Begin
 End;
 
 
+{ ==========================================================================
+  AgregarParametroATodos
+
+  Agrega un parametro (PName / PValue) a todos los componentes de la
+  libreria abierta que todavia no lo tengan. Los que ya lo tienen no se
+  tocan (ni el nombre ni el valor existente se modifican).
+   ========================================================================== }
+
+Procedure AgregarParametroATodos(PName, PValue : String);
+Var
+    CurrentLib     : ISch_Lib;
+    LibIterator    : ISch_Iterator;
+    Component      : ISch_Component;
+    Param          : ISch_Parameter;
+    NewParam       : ISch_Parameter;
+    ComponentCount : Integer;
+Begin
+    If SchServer = Nil Then
+    Begin
+        ShowMessage('SchServer no disponible.');
+        Exit;
+    End;
+
+    CurrentLib := SchServer.GetCurrentSchDocument;
+    If (CurrentLib = Nil) Or (CurrentLib.ObjectID <> eSchLib) Then
+    Begin
+        ShowMessage('Abri primero el archivo .SchLib que queres modificar.');
+        Exit;
+    End;
+
+    If Trim(PName) = '' Then
+    Begin
+        ShowMessage('Ingresa un nombre de parametro.');
+        Exit;
+    End;
+
+    ComponentCount := 0;
+    LibIterator := CurrentLib.SchLibIterator_Create;
+    LibIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
+    Try
+        Component := LibIterator.FirstSchObject;
+        While Component <> Nil Do
+        Begin
+            Param := FindParamByName(Component, PName);
+            If Param = Nil Then
+            Begin
+                NewParam := SchServer.SchObjectFactory(eParameter, eNoDimension);
+                NewParam.Name := PName;
+                NewParam.Text := PValue;
+                NewParam.Location.X := 0;
+                NewParam.Location.Y := 0;
+                NewParam.IsHidden := False;
+                Component.AddSchObject(NewParam);
+                ComponentCount := ComponentCount + 1;
+            End;
+
+            Component := LibIterator.NextSchObject;
+        End;
+    Finally
+        CurrentLib.SchIterator_Destroy(LibIterator);
+    End;
+
+    ShowMessage('Parametro "' + PName + '" agregado a ' + IntToStr(ComponentCount) + ' componente(s).');
+End;
+
+
 // ---------------------------------------------------------------------
 // Formulario
 // ---------------------------------------------------------------------
@@ -608,4 +674,9 @@ End;
 Procedure TForm1.BtnListarParametrosClick(Sender: TObject);
 Begin
     ListarParametros;
+End;
+
+Procedure TForm1.BtnAgregarParametroClick(Sender: TObject);
+Begin
+    AgregarParametroATodos(EditParamName.Text, EditParamValue.Text);
 End;

@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 0
   Top = 0
   Caption = 'Reorganizar Parametros - Configuracion'
-  ClientHeight = 201
+  ClientHeight = 240
   ClientWidth = 625
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -64,6 +64,43 @@ object Form1: TForm1
     Caption = 'Listar parametros'
     TabOrder = 4
     OnClick = BtnListarParametrosClick
+  end
+  object Label2: TLabel
+    Left = 16
+    Top = 122
+    Width = 128
+    Height = 13
+    Caption = 'Nombre del parametro:'
+  end
+  object Label3: TLabel
+    Left = 230
+    Top = 122
+    Width = 89
+    Height = 13
+    Caption = 'Valor por defecto:'
+  end
+  object EditParamName: TEdit
+    Left = 16
+    Top = 140
+    Width = 200
+    Height = 21
+    TabOrder = 5
+  end
+  object EditParamValue: TEdit
+    Left = 230
+    Top = 140
+    Width = 200
+    Height = 21
+    TabOrder = 6
+  end
+  object BtnAgregarParametro: TButton
+    Left = 444
+    Top = 138
+    Width = 165
+    Height = 25
+    Caption = 'Agregar a todos'
+    TabOrder = 7
+    OnClick = BtnAgregarParametroClick
   end
   object OpenDialog1: TOpenDialog
     Filter = 'Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*'
