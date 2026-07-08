@@ -1,0 +1,29 @@
+_Man_Code			_Man_Code
+_Int_Code			_Int_Code
+_Ad_Esp1				_Ad_Esp1
+_Ad_Esp2				_Ad_Esp2	
+_Ad_Esp3				_Ad_Esp3
+_Price				_Price
+_Alt1_Code			_Man1_Code
+_Alt2_Code			_Man2_Code
+_Alt3_Code			_Man3_Code
+_Prov1_Name			_Supp1_Name
+_Prov1_Code			_Supp1_Code
+_Prov1_Price		_Supp1_Price
+_Prov1_Lnk			_Supp1_Link
+_Prov2_Name			_Supp2_Name
+_Prov2_Code			_Supp2_Code
+_Prov2_Price		_Supp2_Price
+_Prov2_Lnk			_Supp2_Link
+_Prov3_Name			_Supp3_Name
+_Prov3_Code			_Supp3_Code
+_Prov3_Price		_Supp3_Price
+_Prov3_Lnk			_Supp3_Link
+_FOB					_FoerignSupp
+_SMD					_SMD
+
+_Man_Lnk				_datasheet			// debe ser un link
+
+
+
+
