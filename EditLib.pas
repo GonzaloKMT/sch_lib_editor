@@ -261,7 +261,10 @@ End;
 // Procedimiento principal
 // ---------------------------------------------------------------------
 
-Procedure ReorganizarParametros;
+// Dummy: sin uso, solo evita que este procedimiento aparezca en la lista
+// de "Run Script" de Altium (que solo ofrece procedimientos sin
+// parametros) -- se debe correr desde el boton del formulario.
+Procedure ReorganizarParametros(Dummy : Integer);
 Var
     RenameFile           : String;
     OldNames, NewNames   : TStringList;
@@ -422,7 +425,8 @@ End;
   verificar los nombres exactos antes de armar el archivo de orden final.
    ========================================================================== }
 
-Procedure ListarParametros;
+// Dummy: ver comentario en ReorganizarParametros.
+Procedure ListarParametros(Dummy : Integer);
 Var
     CurrentLib   : ISch_Lib;
     LibIterator  : ISch_Iterator;
@@ -492,7 +496,8 @@ End;
   No modifica la libreria.
    ========================================================================== }
 
-Procedure DiagnosticarRenombres;
+// Dummy: ver comentario en ReorganizarParametros.
+Procedure DiagnosticarRenombres(Dummy : Integer);
 Var
     OldNames, NewNames : TStringList;
     CurrentLib   : ISch_Lib;
@@ -579,11 +584,12 @@ End;
   MarkSchLibAsModified
 
   Marca la libreria de esquematicos actual como modificada para que Altium
-  permita guardarla. Se ejecuta como paso separado despues de
-  ReorganizarParametros.
+  permita guardarla. Se corre automaticamente despues de
+  ReorganizarParametros (boton "Ejecutar reorganizacion").
    ========================================================================== }
 
-Procedure MarkSchLibAsModified;
+// Dummy: ver comentario en ReorganizarParametros.
+Procedure MarkSchLibAsModified(Dummy : Integer);
 Var
     SchLibDoc : ISch_Document;
     DocPath   : String;
@@ -617,7 +623,8 @@ End;
   en la grilla general de parametros.
    ========================================================================== }
 
-Procedure AgregarParametrosATodos;
+// Dummy: ver comentario en ReorganizarParametros.
+Procedure AgregarParametrosATodos(Dummy : Integer);
 Var
     CurrentLib      : ISch_Lib;
     LibIterator     : ISch_Iterator;
@@ -859,20 +866,22 @@ End;
 
 Procedure TForm1.BtnEjecutarClick(Sender: TObject);
 Begin
-    ReorganizarParametros;
+    ReorganizarParametros(0);
+    MarkSchLibAsModified(0);
 End;
 
 Procedure TForm1.BtnDiagnosticarClick(Sender: TObject);
 Begin
-    DiagnosticarRenombres;
+    DiagnosticarRenombres(0);
 End;
 
 Procedure TForm1.BtnListarParametrosClick(Sender: TObject);
 Begin
-    ListarParametros;
+    ListarParametros(0);
 End;
 
 Procedure TForm1.BtnAgregarParametroClick(Sender: TObject);
 Begin
-    AgregarParametrosATodos;
+    AgregarParametrosATodos(0);
+	MarkSchLibAsModified(0);
 End;
