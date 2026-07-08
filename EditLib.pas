@@ -603,22 +603,41 @@ End;
   AgregarParametrosATodos
 
   Lee una lista de nombres de parametros desde ParamListFile (un nombre
-  por renglon) y agrega cada uno, con valor vacio, a todos los
-  componentes de la libreria abierta que todavia no lo tengan. Si un
-  componente ya tiene el parametro, se lo deja como esta (no se toca su
-  valor).
+  por renglon). Para cada componente de la libreria abierta:
+    1) Agrega, con valor vacio, los parametros de la lista que todavia
+       no tenga. Los que ya tiene NO se tocan (conserva su valor).
+    2) Reordena TODOS sus parametros comunes para que queden en el mismo
+       orden que la lista del archivo; los parametros existentes que no
+       aparecen en la lista se agrupan al final, conservando el orden
+       relativo que ya tenian entre si.
+
+  Los parametros tipo Link (ComponentLink<n>Description / ...URL, ver
+  encabezado de este archivo) NO participan de este reordenamiento:
+  Altium los ordena con su propio indice interno <n>, no con la posicion
+  en la grilla general de parametros.
    ========================================================================== }
 
 Procedure AgregarParametrosATodos;
 Var
-    CurrentLib     : ISch_Lib;
-    LibIterator    : ISch_Iterator;
-    Component      : ISch_Component;
-    Param          : ISch_Parameter;
-    NewParam       : ISch_Parameter;
-    ParamNames     : TStringList;
-    i              : Integer;
-    ComponentCount : Integer;
+    CurrentLib      : ISch_Lib;
+    LibIterator     : ISch_Iterator;
+    Component       : ISch_Component;
+    ParamIterator   : ISch_Iterator;
+    Param           : ISch_Parameter;
+    OldParam        : ISch_Parameter;
+    NewParam        : ISch_Parameter;
+    ParamListNames  : TStringList;
+    ExistingNames   : TStringList;
+    ExistingValues  : TStringList;
+    ExistingHidden  : TStringList;
+    ExistingLocX    : TStringList;
+    ExistingLocY    : TStringList;
+    FinalOrder      : TStringList;
+    i, Idx          : Integer;
+    NameKey         : String;
+    Changed         : Boolean;
+    ComponentCount  : Integer;
+    AddedCount      : Integer;
 Begin
     If SchServer = Nil Then
     Begin
@@ -639,48 +658,157 @@ Begin
         Exit;
     End;
 
-    ParamNames := TStringList.Create;
-    LoadParamNameList(ParamListFile, ParamNames);
+    ParamListNames := TStringList.Create;
+    LoadParamNameList(ParamListFile, ParamListNames);
 
-    If ParamNames.Count = 0 Then
+    If ParamListNames.Count = 0 Then
     Begin
         ShowMessage('No se pudo leer la lista de parametros, o esta vacia: ' + ParamListFile);
-        ParamNames.Free;
+        ParamListNames.Free;
         Exit;
     End;
 
     ComponentCount := 0;
-    LibIterator := CurrentLib.SchLibIterator_Create;
-    LibIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
+    AddedCount     := 0;
+
+    SchServer.ProcessControl.PreProcess(CurrentLib, '');
     Try
-        Component := LibIterator.FirstSchObject;
-        While Component <> Nil Do
-        Begin
-            For i := 0 To ParamNames.Count - 1 Do
+        LibIterator := CurrentLib.SchLibIterator_Create;
+        LibIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
+        Try
+            Component := LibIterator.FirstSchObject;
+            While Component <> Nil Do
             Begin
-                Param := FindParamByName(Component, ParamNames[i]);
-                If Param = Nil Then
+                ExistingNames  := TStringList.Create;
+                ExistingValues := TStringList.Create;
+                ExistingHidden := TStringList.Create;
+                ExistingLocX   := TStringList.Create;
+                ExistingLocY   := TStringList.Create;
+
+                // Leer los parametros comunes actuales (los Links no
+                // entran en este reordenamiento).
+                ParamIterator := Component.SchIterator_Create;
+                ParamIterator.AddFilter_ObjectSet(MkSet(eParameter));
+                Param := ParamIterator.FirstSchObject;
+                While Param <> Nil Do
                 Begin
-                    NewParam := SchServer.SchObjectFactory(eParameter, eNoDimension);
-                    NewParam.Name := ParamNames[i];
-                    NewParam.Text := '';
-                    NewParam.Location.X := 0;
-                    NewParam.Location.Y := 0;
-                    NewParam.IsHidden := False;
-                    Component.AddSchObject(NewParam);
+                    If Not StringStartsWith(Param.Name, 'ComponentLink') Then
+                    Begin
+                        ExistingNames.Add(Param.Name);
+                        ExistingValues.Add(Param.Text);
+                        If Param.IsHidden Then
+                            ExistingHidden.Add('H')
+                        Else
+                            ExistingHidden.Add('V');
+                        ExistingLocX.Add(IntToStr(Param.Location.X));
+                        ExistingLocY.Add(IntToStr(Param.Location.Y));
+                    End;
+                    Param := ParamIterator.NextSchObject;
+                End;
+                Component.SchIterator_Destroy(ParamIterator);
+
+                // Orden final: primero los de la lista (en ese orden),
+                // despues los existentes que no estan en la lista, en el
+                // orden relativo en que ya estaban.
+                FinalOrder := TStringList.Create;
+                For i := 0 To ParamListNames.Count - 1 Do
+                    FinalOrder.Add(ParamListNames[i]);
+                For i := 0 To ExistingNames.Count - 1 Do
+                Begin
+                    If FinalOrder.IndexOf(ExistingNames[i]) < 0 Then
+                        FinalOrder.Add(ExistingNames[i]);
+                End;
+
+                // Si el orden actual ya coincide con el final, no tocar
+                // el componente.
+                Changed := (ExistingNames.Count <> FinalOrder.Count);
+                If Not Changed Then
+                Begin
+                    For i := 0 To FinalOrder.Count - 1 Do
+                    Begin
+                        If ExistingNames[i] <> FinalOrder[i] Then
+                        Begin
+                            Changed := True;
+                            Break;
+                        End;
+                    End;
+                End;
+
+                If Changed Then
+                Begin
+                    For i := 0 To ParamListNames.Count - 1 Do
+                    Begin
+                        If ExistingNames.IndexOf(ParamListNames[i]) < 0 Then
+                            AddedCount := AddedCount + 1;
+                    End;
+
+                    // Borrar los parametros comunes actuales (patron
+                    // seguro: guardar el siguiente antes de borrar).
+                    ParamIterator := Component.SchIterator_Create;
+                    ParamIterator.AddFilter_ObjectSet(MkSet(eParameter));
+                    Param := ParamIterator.FirstSchObject;
+                    While Param <> Nil Do
+                    Begin
+                        OldParam := Param;
+                        Param := ParamIterator.NextSchObject;
+                        If Not StringStartsWith(OldParam.Name, 'ComponentLink') Then
+                        Begin
+                            Component.RemoveSchObject(OldParam);
+                            SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_PrimitiveRegistration, OldParam.I_ObjectAddress);
+                        End;
+                    End;
+                    Component.SchIterator_Destroy(ParamIterator);
+
+                    // Recrearlos en el orden final, conservando valor y
+                    // visibilidad de los que ya existian.
+                    For i := 0 To FinalOrder.Count - 1 Do
+                    Begin
+                        NameKey := FinalOrder[i];
+                        Idx     := ExistingNames.IndexOf(NameKey);
+
+                        NewParam := SchServer.SchObjectFactory(eParameter, eCreate_Default);
+                        NewParam.Name := NameKey;
+                        If Idx >= 0 Then
+                        Begin
+                            NewParam.Text        := ExistingValues[Idx];
+                            NewParam.IsHidden    := (ExistingHidden[Idx] = 'H');
+                            NewParam.Location.X  := StrToInt(ExistingLocX[Idx]);
+                            NewParam.Location.Y  := StrToInt(ExistingLocY[Idx]);
+                        End
+                        Else
+                        Begin
+                            NewParam.Text        := '';
+                            NewParam.IsHidden    := False;
+                            NewParam.Location.X  := 0;
+                            NewParam.Location.Y  := 0;
+                        End;
+                        Component.AddSchObject(NewParam);
+                        SchServer.RobotManager.SendMessage(Component.I_ObjectAddress, c_BroadCast, SCHM_PrimitiveRegistration, NewParam.I_ObjectAddress);
+                    End;
+
                     ComponentCount := ComponentCount + 1;
                 End;
-            End;
 
-            Component := LibIterator.NextSchObject;
+                ExistingNames.Free;
+                ExistingValues.Free;
+                ExistingHidden.Free;
+                ExistingLocX.Free;
+                ExistingLocY.Free;
+                FinalOrder.Free;
+
+                Component := LibIterator.NextSchObject;
+            End;
+        Finally
+            CurrentLib.SchIterator_Destroy(LibIterator);
         End;
     Finally
-        CurrentLib.SchIterator_Destroy(LibIterator);
+        SchServer.ProcessControl.PostProcess(CurrentLib, '');
     End;
 
-    ParamNames.Free;
+    ParamListNames.Free;
 
-    ShowMessage('Se agregaron ' + IntToStr(ComponentCount) + ' parametro(s) en total (entre todos los componentes).');
+    ShowMessage('Componentes actualizados: ' + IntToStr(ComponentCount) +
+                '. Parametros nuevos agregados en total: ' + IntToStr(AddedCount) + '.');
 End;
 
 
