@@ -68,37 +68,33 @@ object Form1: TForm1
   object Label2: TLabel
     Left = 16
     Top = 122
-    Width = 128
+    Width = 199
     Height = 13
-    Caption = 'Nombre del parametro:'
+    Caption = 'Archivo con la lista de parametros:'
   end
-  object Label3: TLabel
-    Left = 230
-    Top = 122
-    Width = 89
-    Height = 13
-    Caption = 'Valor por defecto:'
-  end
-  object EditParamName: TEdit
+  object EditParamListFile: TEdit
     Left = 16
     Top = 140
-    Width = 200
+    Width = 414
     Height = 21
+    ReadOnly = True
     TabOrder = 5
   end
-  object EditParamValue: TEdit
-    Left = 230
-    Top = 140
-    Width = 200
-    Height = 21
+  object BtnSeleccionarParamList: TButton
+    Left = 436
+    Top = 138
+    Width = 87
+    Height = 23
+    Caption = 'Examinar...'
     TabOrder = 6
+    OnClick = BtnSeleccionarParamListClick
   end
   object BtnAgregarParametro: TButton
-    Left = 444
-    Top = 138
+    Left = 16
+    Top = 172
     Width = 165
     Height = 25
-    Caption = 'Agregar a todos'
+    Caption = 'Agregar parametros'
     TabOrder = 7
     OnClick = BtnAgregarParametroClick
   end

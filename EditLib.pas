@@ -76,6 +76,10 @@ Var
     // por defecto.
     SelectedRenameFile : String;
 
+    // Ruta del archivo con la lista de parametros a agregar
+    // (EditParamListFile.Text). Vacia hasta que se elija uno.
+    ParamListFile : String;
+
 
 // ---------------------------------------------------------------------
 // Utilidades de parseo de texto
@@ -152,6 +156,36 @@ Begin
                 OldList.Add(F1);
                 NewList.Add(F2);
             End;
+        End;
+    Finally
+        RawLines.Free;
+    End;
+End;
+
+// Carga una lista simple de nombres de parametros (un nombre por renglon)
+// en Names (debe venir creada). Ignora renglones vacios y comentarios
+// "// ...".
+Procedure LoadParamNameList(FilePath : String; Names : TStringList);
+Var
+    RawLines : TStringList;
+    i        : Integer;
+    Line     : String;
+    p        : Integer;
+Begin
+    Names.Clear;
+
+    RawLines := TStringList.Create;
+    Try
+        RawLines.LoadFromFile(FilePath);
+        For i := 0 To RawLines.Count - 1 Do
+        Begin
+            Line := RawLines[i];
+
+            p := Pos('//', Line);
+            If p > 0 Then Line := Copy(Line, 1, p - 1);
+
+            Line := Trim(Line);
+            If Line <> '' Then Names.Add(Line);
         End;
     Finally
         RawLines.Free;
@@ -566,20 +600,24 @@ End;
 
 
 { ==========================================================================
-  AgregarParametroATodos
+  AgregarParametrosATodos
 
-  Agrega un parametro (PName / PValue) a todos los componentes de la
-  libreria abierta que todavia no lo tengan. Los que ya lo tienen no se
-  tocan (ni el nombre ni el valor existente se modifican).
+  Lee una lista de nombres de parametros desde ParamListFile (un nombre
+  por renglon) y agrega cada uno, con valor vacio, a todos los
+  componentes de la libreria abierta que todavia no lo tengan. Si un
+  componente ya tiene el parametro, se lo deja como esta (no se toca su
+  valor).
    ========================================================================== }
 
-Procedure AgregarParametroATodos(PName, PValue : String);
+Procedure AgregarParametrosATodos;
 Var
     CurrentLib     : ISch_Lib;
     LibIterator    : ISch_Iterator;
     Component      : ISch_Component;
     Param          : ISch_Parameter;
     NewParam       : ISch_Parameter;
+    ParamNames     : TStringList;
+    i              : Integer;
     ComponentCount : Integer;
 Begin
     If SchServer = Nil Then
@@ -595,9 +633,19 @@ Begin
         Exit;
     End;
 
-    If Trim(PName) = '' Then
+    If Trim(ParamListFile) = '' Then
     Begin
-        ShowMessage('Ingresa un nombre de parametro.');
+        ShowMessage('Elegi primero el archivo con la lista de parametros con el boton "Examinar...".');
+        Exit;
+    End;
+
+    ParamNames := TStringList.Create;
+    LoadParamNameList(ParamListFile, ParamNames);
+
+    If ParamNames.Count = 0 Then
+    Begin
+        ShowMessage('No se pudo leer la lista de parametros, o esta vacia: ' + ParamListFile);
+        ParamNames.Free;
         Exit;
     End;
 
@@ -608,17 +656,20 @@ Begin
         Component := LibIterator.FirstSchObject;
         While Component <> Nil Do
         Begin
-            Param := FindParamByName(Component, PName);
-            If Param = Nil Then
+            For i := 0 To ParamNames.Count - 1 Do
             Begin
-                NewParam := SchServer.SchObjectFactory(eParameter, eNoDimension);
-                NewParam.Name := PName;
-                NewParam.Text := PValue;
-                NewParam.Location.X := 0;
-                NewParam.Location.Y := 0;
-                NewParam.IsHidden := False;
-                Component.AddSchObject(NewParam);
-                ComponentCount := ComponentCount + 1;
+                Param := FindParamByName(Component, ParamNames[i]);
+                If Param = Nil Then
+                Begin
+                    NewParam := SchServer.SchObjectFactory(eParameter, eNoDimension);
+                    NewParam.Name := ParamNames[i];
+                    NewParam.Text := '';
+                    NewParam.Location.X := 0;
+                    NewParam.Location.Y := 0;
+                    NewParam.IsHidden := False;
+                    Component.AddSchObject(NewParam);
+                    ComponentCount := ComponentCount + 1;
+                End;
             End;
 
             Component := LibIterator.NextSchObject;
@@ -627,7 +678,9 @@ Begin
         CurrentLib.SchIterator_Destroy(LibIterator);
     End;
 
-    ShowMessage('Parametro "' + PName + '" agregado a ' + IntToStr(ComponentCount) + ' componente(s).');
+    ParamNames.Free;
+
+    ShowMessage('Se agregaron ' + IntToStr(ComponentCount) + ' parametro(s) en total (entre todos los componentes).');
 End;
 
 
@@ -647,6 +700,9 @@ Procedure TForm1.FormCreate(Sender: TObject);
 Begin
     Edit1.Text := '';
     SelectedRenameFile := '';
+
+    EditParamListFile.Text := '';
+    ParamListFile := '';
 End;
 
 Procedure TForm1.BtnSeleccionarArchivoClick(Sender: TObject);
@@ -658,6 +714,18 @@ Begin
     Begin
         Edit1.Text := OpenDialog1.FileName;
         SelectedRenameFile := Edit1.Text;
+    End;
+End;
+
+Procedure TForm1.BtnSeleccionarParamListClick(Sender: TObject);
+Begin
+    OpenDialog1.Filter := 'Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*';
+    If Trim(EditParamListFile.Text) <> '' Then
+        OpenDialog1.FileName := EditParamListFile.Text;
+    If OpenDialog1.Execute Then
+    Begin
+        EditParamListFile.Text := OpenDialog1.FileName;
+        ParamListFile := EditParamListFile.Text;
     End;
 End;
 
@@ -678,5 +746,5 @@ End;
 
 Procedure TForm1.BtnAgregarParametroClick(Sender: TObject);
 Begin
-    AgregarParametroATodos(EditParamName.Text, EditParamValue.Text);
+    AgregarParametrosATodos;
 End;
