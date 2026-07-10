@@ -21,6 +21,13 @@ object Form1: TForm1
     Height = 13
     Caption = 'Archivo de mapeo de renombres:'
   end
+  object Label2: TLabel
+    Left = 16
+    Top = 122
+    Width = 166
+    Height = 13
+    Caption = 'Archivo con la lista de parametros:'
+  end
   object Edit1: TEdit
     Left = 16
     Top = 30
@@ -43,7 +50,7 @@ object Form1: TForm1
     Top = 80
     Width = 121
     Height = 32
-    Caption = 'Ejecutar reorganizacion'
+    Caption = 'Renombrar'
     TabOrder = 2
     OnClick = BtnEjecutarClick
   end
@@ -64,13 +71,6 @@ object Form1: TForm1
     Caption = 'Listar parametros'
     TabOrder = 4
     OnClick = BtnListarParametrosClick
-  end
-  object Label2: TLabel
-    Left = 16
-    Top = 122
-    Width = 199
-    Height = 13
-    Caption = 'Archivo con la lista de parametros:'
   end
   object EditParamListFile: TEdit
     Left = 16
@@ -94,7 +94,7 @@ object Form1: TForm1
     Top = 172
     Width = 165
     Height = 25
-    Caption = 'Agregar parametros'
+    Caption = 'Agregar y Ordenar'
     TabOrder = 7
     OnClick = BtnAgregarParametroClick
   end

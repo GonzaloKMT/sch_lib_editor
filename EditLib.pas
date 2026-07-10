@@ -883,5 +883,5 @@ End;
 Procedure TForm1.BtnAgregarParametroClick(Sender: TObject);
 Begin
     AgregarParametrosATodos(0);
-	MarkSchLibAsModified(0);
+    MarkSchLibAsModified(0);
 End;
