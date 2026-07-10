@@ -819,6 +819,106 @@ Begin
 End;
 
 
+// Nombres de parametros "de sistema" que Altium genera automaticamente
+// para todo componente (Comment, Designator, Description, Design Item ID,
+// Footprint -- ver documentacion "Working with Design Object Parameters").
+// Estos SI pueden aparecer al iterar con MkSet(eParameter), pero no deben
+// ocultarse junto con los parametros propios del componente.
+Function IsSystemParamName(PName : String) : Boolean;
+Var
+    N : String;
+Begin
+    N := UpperCase(Trim(PName));
+    Result := (N = 'COMMENT')        Or
+              (N = 'DESIGNATOR')     Or
+              (N = 'DESCRIPTION')    Or
+              (N = 'DESIGN ITEM ID') Or
+              (N = 'FOOTPRINT')      Or
+              (N = 'VALUE')          Or
+              (N = 'LIBRARY REF')    Or
+              (N = 'LIBREFERENCE');
+End;
+
+{ ==========================================================================
+  OcultarTodosLosParametros
+
+  Recorre TODOS los componentes de la libreria abierta y oculta (IsHidden
+  := True) todos sus parametros propios, incluidos los de tipo Link
+  (ComponentLink<n>Description / ...URL). Los parametros de sistema
+  (Comment, Designator, Description, Footprint, etc. -- ver
+  IsSystemParamName) se detectan por nombre y NO se tocan, para no alterar
+  la visualizacion de los componentes en las hojas que los usen.
+  No renombra, no borra, no agrega ni reordena nada: solo cambia la
+  visibilidad de los parametros no-sistema.
+   ========================================================================== }
+
+// Dummy: ver comentario en ReorganizarParametros.
+Procedure OcultarTodosLosParametros(Dummy : Integer);
+Var
+    CurrentLib     : ISch_Lib;
+    LibIterator    : ISch_Iterator;
+    Component      : ISch_Component;
+    ParamIterator  : ISch_Iterator;
+    Param          : ISch_Parameter;
+    ComponentCount : Integer;
+    ParamCount     : Integer;
+    SkippedCount   : Integer;
+Begin
+    If SchServer = Nil Then
+    Begin
+        ShowMessage('SchServer no disponible.');
+        Exit;
+    End;
+
+    CurrentLib := SchServer.GetCurrentSchDocument;
+    If (CurrentLib = Nil) Or (CurrentLib.ObjectID <> eSchLib) Then
+    Begin
+        ShowMessage('Abri primero el archivo .SchLib que queres modificar.');
+        Exit;
+    End;
+
+    ComponentCount := 0;
+    ParamCount     := 0;
+    SkippedCount   := 0;
+
+    LibIterator := CurrentLib.SchLibIterator_Create;
+    LibIterator.AddFilter_ObjectSet(MkSet(eSchComponent));
+    Try
+        Component := LibIterator.FirstSchObject;
+        While Component <> Nil Do
+        Begin
+            ParamIterator := Component.SchIterator_Create;
+            ParamIterator.AddFilter_ObjectSet(MkSet(eParameter));
+            Try
+                Param := ParamIterator.FirstSchObject;
+                While Param <> Nil Do
+                Begin
+                    If IsSystemParamName(Param.Name) Then
+                        SkippedCount := SkippedCount + 1
+                    Else If Not Param.IsHidden Then
+                    Begin
+                        Param.IsHidden := True;
+                        ParamCount := ParamCount + 1;
+                    End;
+                    Param := ParamIterator.NextSchObject;
+                End;
+            Finally
+                Component.SchIterator_Destroy(ParamIterator);
+            End;
+
+            ComponentCount := ComponentCount + 1;
+            Component := LibIterator.NextSchObject;
+        End;
+    Finally
+        CurrentLib.SchIterator_Destroy(LibIterator);
+    End;
+
+    ShowMessage('Parametros ocultados: ' + IntToStr(ParamCount) +
+                ' en ' + IntToStr(ComponentCount) + ' componentes. ' +
+                'Parametros de sistema no modificados: ' + IntToStr(SkippedCount) + '.');
+End;
+
+
 // ---------------------------------------------------------------------
 // Formulario
 // ---------------------------------------------------------------------
@@ -883,5 +983,11 @@ End;
 Procedure TForm1.BtnAgregarParametroClick(Sender: TObject);
 Begin
     AgregarParametrosATodos(0);
+    MarkSchLibAsModified(0);
+End;
+
+Procedure TForm1.BtnOcultarParametrosClick(Sender: TObject);
+Begin
+    OcultarTodosLosParametros(0);
     MarkSchLibAsModified(0);
 End;

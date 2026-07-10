@@ -98,6 +98,15 @@ object Form1: TForm1
     TabOrder = 7
     OnClick = BtnAgregarParametroClick
   end
+  object BtnOcultarParametros: TButton
+    Left = 195
+    Top = 172
+    Width = 200
+    Height = 25
+    Caption = 'Ocultar todos los parametros'
+    TabOrder = 8
+    OnClick = BtnOcultarParametrosClick
+  end
   object OpenDialog1: TOpenDialog
     Filter = 'Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*'
     Left = 560
