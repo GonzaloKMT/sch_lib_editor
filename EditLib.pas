@@ -778,14 +778,14 @@ Begin
                         If Idx >= 0 Then
                         Begin
                             NewParam.Text        := ExistingValues[Idx];
-                            NewParam.IsHidden    := (ExistingHidden[Idx] = 'H');
+                            NewParam.IsHidden    := True;//(ExistingHidden[Idx] = 'H');
                             NewParam.Location.X  := StrToInt(ExistingLocX[Idx]);
                             NewParam.Location.Y  := StrToInt(ExistingLocY[Idx]);
                         End
                         Else
                         Begin
                             NewParam.Text        := '';
-                            NewParam.IsHidden    := False;
+                            NewParam.IsHidden    := True;
                             NewParam.Location.X  := 0;
                             NewParam.Location.Y  := 0;
                         End;
